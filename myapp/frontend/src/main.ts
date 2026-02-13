@@ -3,11 +3,11 @@ if (!el) throw new Error("Missing #app");
 
 el.innerHTML = `
   <main style="font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding: 24px; max-width: 720px;">
-    <h1>myapp</h1>
-    <p>TypeScript frontend + Python FastAPI backend (no Docker).</p>
+    <h1>A MorBright Product</h1>
+    <p>A MorBright Product</p>
 
     <button id="btn" style="padding: 10px 14px; border-radius: 10px; border: 1px solid #ccc; cursor: pointer;">
-      Call /api/health
+      Search
     </button>
 
     <pre id="out" style="margin-top: 16px; padding: 12px; border-radius: 12px; background: #f6f6f6; overflow:auto;"></pre>

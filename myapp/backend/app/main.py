@@ -8,7 +8,7 @@ app = FastAPI()
 
 @app.get("/api/health")
 def health():
-    return {"ok": True}
+    return {"ok": True, "":"Saul is testing the backend"}
 
 @app.get("/api/echo")
 def echo(msg: str = "hello"):
