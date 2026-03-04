@@ -19,3 +19,29 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("API_PORT", "8000"))
     uvicorn.run("app.main:app", host="127.0.0.1", port=port, reload=True)
+
+@app.get("/api/items")
+def get_items():
+    return [
+        {
+            "id": 1,
+            "name": "PSVR Set",
+            "quantity": 12,
+            "location": "On Corner Rack",
+            "status": "Renewed - Good"
+        },
+        {
+            "id": 2,
+            "name": "Power Cable",
+            "quantity": 3,
+            "location": "Top Shelf Station 7",
+            "status": "DAMAGED"
+        },
+        {
+            "id": 3,
+            "name": "Meta Quest 2",
+            "quantity": 0,
+            "location": "Repair Bin",
+            "status": "DAMAGED"
+        }
+    ]
