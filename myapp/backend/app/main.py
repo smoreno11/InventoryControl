@@ -6,6 +6,7 @@ load_dotenv()
 
 app = FastAPI()
 
+#Confirm the backend server is running and let frontend apps check if the API is live. 
 @app.get("/api/health")
 def health():
     return {"ok": True, "":"Saul is testing the backend"}
@@ -26,7 +27,7 @@ def get_items():
         {
             "id": 1,
             "name": "PSVR Set",
-            "quantity": 12,
+            "quantity": 13,
             "location": "On Corner Rack",
             "status": "Renewed - Good"
         },

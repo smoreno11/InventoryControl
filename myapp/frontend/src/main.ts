@@ -80,7 +80,9 @@ type InventoryItem = {
 
 const invBtn = document.getElementById("inv-btn") as HTMLButtonElement | null;
 const invQ = document.getElementById("inv-q") as HTMLInputElement | null;
-const invRows = document.getElementById("inv-rows") as HTMLTableSectionElement | null;
+const invRows = document.getElementById(
+  "inv-rows",
+) as HTMLTableSectionElement | null;
 const invMeta = document.getElementById("inv-meta") as HTMLSpanElement | null;
 const invErr = document.getElementById("inv-err") as HTMLPreElement | null;
 
@@ -124,11 +126,10 @@ function renderInventory() {
     .map((it) => {
       // Business rule: damaged items are visually highlighted
       const rowBg =
-        it.status.toUpperCase() === "DAMAGED"
-          ? "background:#fff7c2;"
-          : "";
+        it.status.toUpperCase() === "DAMAGED" ? "background:#fff7c2;" : "";
 
-      const qtyStyle = it.quantity === 0 ? "color:#b00020; font-weight:600;" : "";
+      const qtyStyle =
+        it.quantity === 0 ? "color:#b00020; font-weight:600;" : "";
 
       return `
         <tr style="${rowBg}">
@@ -149,7 +150,8 @@ async function loadInventory() {
 
   try {
     const res = await fetch("/api/items");
-    if (!res.ok) throw new Error(`GET /api/items failed: ${res.status} ${res.statusText}`);
+    if (!res.ok)
+      throw new Error(`GET /api/items failed: ${res.status} ${res.statusText}`);
     allItems = (await res.json()) as InventoryItem[];
     renderInventory();
   } catch (e) {
