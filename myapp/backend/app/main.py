@@ -8,6 +8,7 @@ from app.db import create_table, insert_inventory, get_inventory
 load_dotenv()
 app = FastAPI()
 
+#Confirm the backend server is running and let frontend apps check if the API is live. 
 class InventoryItem(BaseModel):
     DATE: str
     NAME: str
