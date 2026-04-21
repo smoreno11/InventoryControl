@@ -6,6 +6,7 @@ from pydantic import BaseModel
 load_dotenv()
 app = FastAPI()
 
+#Confirm the backend server is running and let frontend apps check if the API is live. 
 @app.get("/api/health")
 def health():
     return {"ok": True, "message": "Saul is testing the backend"}
