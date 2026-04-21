@@ -1,21 +1,32 @@
 const el = document.getElementById("app");
 if (!el) throw new Error("Missing #app");
 
-el.innerHTML = el.innerHTML = `
+el.innerHTML = `
   <main style="font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding: 24px; max-width: 720px;">
     <h1>A MorBright Product</h1>
-    <p>A MorBright Product</p>
 
-    <button id="btn" style="padding: 10px 14px; border-radius: 10px; border: 1px solid #ccc; cursor: pointer;">
-      Search
+    <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e5e5;" />
+
+    <h2 style="margin: 0 0 12px;">Add Item</h2>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <input id="f-date" placeholder="Date (e.g. 2026-04-21)" style="padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc;" />
+      <input id="f-name" placeholder="Item Name" style="padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc;" />
+      <input id="f-tracking" placeholder="Tracking #" type="number" style="padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc;" />
+      <input id="f-ebayid" placeholder="eBay ID" type="text" style="padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc;" />
+      <input id="f-quantity" placeholder="Quantity" type="number" style="padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc;" />
+      <input id="f-totalcost" placeholder="Total Cost" type="number" style="padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc;" />
+      <input id="f-serialnumber" placeholder="Serial Number" type="text" style="padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc;" />
+      <input id="f-loggedby" placeholder="Logged By" style="padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc;" />
+      <input id="f-notes" placeholder="Notes" style="padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc; grid-column: span 2;" />
+    </div>
+    <button id="f-submit" style="margin-top: 12px; padding: 10px 20px; border-radius: 10px; border: none; background: #111; color: #fff; cursor: pointer; font-size: 14px;">
+      Add Item
     </button>
-
-    <pre id="out" style="margin-top: 16px; padding: 12px; border-radius: 12px; background: #f6f6f6; overflow:auto;"></pre>
+    <span id="f-msg" style="margin-left: 12px; font-size: 14px; color: green;"></span>
 
     <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e5e5;" />
 
     <h2 style="margin: 0 0 8px;">Inventory</h2>
-
     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
       <input
         id="inv-q"
@@ -28,15 +39,20 @@ el.innerHTML = el.innerHTML = `
       <span id="inv-meta" style="color:#666; font-size: 14px;"></span>
     </div>
 
-    <div style="margin-top: 12px; border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden;">
+    <div style="margin-top: 12px; border: 1px solid #e5e5e5; border-radius: 12px; overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr style="background: #fafafa; text-align: left;">
-            <th style="padding: 12px; border-bottom: 1px solid #eee;">Item</th>
-            <th style="padding: 12px; border-bottom: 1px solid #eee; width: 80px;">Qty</th>
-            <th style="padding: 12px; border-bottom: 1px solid #eee;">Location</th>
-            <th style="padding: 12px; border-bottom: 1px solid #eee; width: 140px;">Status</th>
-          </tr>
+           <th style="padding: 12px; border-bottom: 1px solid #eee;">Date</th>
+           <th style="padding: 12px; border-bottom: 1px solid #eee;">Item</th>
+           <th style="padding: 12px; border-bottom: 1px solid #eee;">Tracking</th>
+           <th style="padding: 12px; border-bottom: 1px solid #eee;">eBay ID</th>
+           <th style="padding: 12px; border-bottom: 1px solid #eee;">Qty</th>
+           <th style="padding: 12px; border-bottom: 1px solid #eee;">Total Cost</th>
+           <th style="padding: 12px; border-bottom: 1px solid #eee;">Serial #</th>
+           <th style="padding: 12px; border-bottom: 1px solid #eee;">Logged By</th>
+           <th style="padding: 12px; border-bottom: 1px solid #eee;">Notes</th>
+          </tr> 
         </thead>
         <tbody id="inv-rows"></tbody>
       </table>
@@ -46,49 +62,28 @@ el.innerHTML = el.innerHTML = `
   </main>
 `;
 
-const btn = document.getElementById("btn") as HTMLButtonElement | null;
-const out = document.getElementById("out") as HTMLPreElement | null;
-
-async function callHealth() {
-  if (!out) return;
-  out.textContent = "Loading...";
-  try {
-    // In dev, Vite proxies /api -> backend
-    const res = await fetch("/api/health");
-    const data = await res.json();
-    out.textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    out.textContent = String(err);
-  }
-}
-
-btn?.addEventListener("click", callHealth);
-callHealth();
-
-// Daily Inventory UI
-// - Fetches items from /api/items
-// - Supports search by name/location in building/status
-// - Highlights DAMAGED items for quick scanning
-
 type InventoryItem = {
-  id: number;
-  name: string;
-  quantity: number;
-  location: string;
-  status: string;
+  DATE: string;
+  NAME: string;
+  TRACKING: number;
+  EBAYID: string;
+  QUANTITY: number;
+  TOTALCOST: number;
+  SERIALNUMBER: string;
+  LOGGEDBY: string;
+  NOTES: string;
 };
 
 const invBtn = document.getElementById("inv-btn") as HTMLButtonElement | null;
 const invQ = document.getElementById("inv-q") as HTMLInputElement | null;
-const invRows = document.getElementById(
-  "inv-rows",
-) as HTMLTableSectionElement | null;
+const invRows = document.getElementById("inv-rows") as HTMLTableSectionElement | null;
 const invMeta = document.getElementById("inv-meta") as HTMLSpanElement | null;
 const invErr = document.getElementById("inv-err") as HTMLPreElement | null;
+const fSubmit = document.getElementById("f-submit") as HTMLButtonElement | null;
+const fMsg = document.getElementById("f-msg") as HTMLSpanElement | null;
 
 let allItems: InventoryItem[] = [];
 
-// Escape HTML if text fields contain any special characters
 function esc(s: string) {
   return s
     .replace(/&/g, "&amp;")
@@ -116,7 +111,7 @@ function renderInventory() {
   const q = (invQ?.value ?? "").trim().toLowerCase();
   const filtered = allItems.filter((it) => {
     if (!q) return true;
-    const hay = `${it.name} ${it.location} ${it.status}`.toLowerCase();
+    const hay = `${it.NAME} ${it.NOTES} ${it.LOGGEDBY}`.toLowerCase();
     return hay.includes(q);
   });
 
@@ -124,34 +119,30 @@ function renderInventory() {
 
   invRows.innerHTML = filtered
     .map((it) => {
-      // Business rule: damaged items are visually highlighted
-      const rowBg =
-        it.status.toUpperCase() === "DAMAGED" ? "background:#fff7c2;" : "";
-
-      const qtyStyle =
-        it.quantity === 0 ? "color:#b00020; font-weight:600;" : "";
-
+      const qtyStyle = it.QUANTITY === 0 ? "color:#b00020; font-weight:600;" : "";
       return `
-        <tr style="${rowBg}">
-          <td style="padding:12px; border-bottom:1px solid #f1f1f1;">${esc(it.name)}</td>
-          <td style="padding:12px; border-bottom:1px solid #f1f1f1; ${qtyStyle}">${it.quantity}</td>
-          <td style="padding:12px; border-bottom:1px solid #f1f1f1;">${esc(it.location)}</td>
-          <td style="padding:12px; border-bottom:1px solid #f1f1f1;">${esc(it.status)}</td>
+        <tr>
+          <td style="padding:12px; border-bottom:1px solid #f1f1f1;">${esc(it.DATE)}</td>
+          <td style="padding:12px; border-bottom:1px solid #f1f1f1;">${esc(it.NAME)}</td>
+          <td style="padding:12px; border-bottom:1px solid #f1f1f1;">${it.TRACKING}</td>
+          <td style="padding:12px; border-bottom:1px solid #f1f1f1;">${it.EBAYID}</td>
+          <td style="padding:12px; border-bottom:1px solid #f1f1f1; ${qtyStyle}">${it.QUANTITY}</td>
+          <td style="padding:12px; border-bottom:1px solid #f1f1f1;">$${it.TOTALCOST}</td>
+          <td style="padding:12px; border-bottom:1px solid #f1f1f1;">${esc(it.SERIALNUMBER)}</td>
+          <td style="padding:12px; border-bottom:1px solid #f1f1f1;">${esc(it.LOGGEDBY)}</td>
+          <td style="padding:12px; border-bottom:1px solid #f1f1f1;">${esc(it.NOTES)}</td>
         </tr>
       `;
     })
     .join("");
 }
 
-// Fetch inventory from backend and re-render table
 async function loadInventory() {
   clearInvErr();
   if (invMeta) invMeta.textContent = "Loading...";
-
   try {
     const res = await fetch("/api/items");
-    if (!res.ok)
-      throw new Error(`GET /api/items failed: ${res.status} ${res.statusText}`);
+    if (!res.ok) throw new Error(`GET /api/items failed: ${res.status} ${res.statusText}`);
     allItems = (await res.json()) as InventoryItem[];
     renderInventory();
   } catch (e) {
@@ -160,8 +151,44 @@ async function loadInventory() {
   }
 }
 
+async function addItem() {
+  if (!fMsg) return;
+  fMsg.textContent = "";
+
+  const item = {
+    DATE: (document.getElementById("f-date") as HTMLInputElement).value,
+    NAME: (document.getElementById("f-name") as HTMLInputElement).value,
+    TRACKING: Number((document.getElementById("f-tracking") as HTMLInputElement).value),
+    EBAYID: (document.getElementById("f-ebayid") as HTMLInputElement).value,
+    QUANTITY: Number((document.getElementById("f-quantity") as HTMLInputElement).value),
+    TOTALCOST: Number((document.getElementById("f-totalcost") as HTMLInputElement).value),
+    SERIALNUMBER: (document.getElementById("f-serialnumber") as HTMLInputElement).value,
+    LOGGEDBY: (document.getElementById("f-loggedby") as HTMLInputElement).value,
+    NOTES: (document.getElementById("f-notes") as HTMLInputElement).value,
+  };
+
+  try {
+    const res = await fetch("/api/inventory", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(item),
+    });
+    if (!res.ok) throw new Error(`POST failed: ${res.status}`);
+    fMsg.textContent = "Item added!";
+    fMsg.style.color = "green";
+    // Clear the form
+    ["f-date","f-name","f-tracking","f-ebayid","f-quantity","f-totalcost","f-serialnumber","f-loggedby","f-notes"]
+      .forEach(id => (document.getElementById(id) as HTMLInputElement).value = "");
+    // Reload the table
+    loadInventory();
+  } catch (e) {
+    fMsg.textContent = String(e);
+    fMsg.style.color = "red";
+  }
+}
+
+fSubmit?.addEventListener("click", addItem);
 invBtn?.addEventListener("click", loadInventory);
 invQ?.addEventListener("input", renderInventory);
 
-// Optional: auto-load on page load
 loadInventory();
