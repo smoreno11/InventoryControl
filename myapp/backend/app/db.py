@@ -16,10 +16,10 @@ def create_table():
         DATE TEXT,
         NAME TEXT,
         TRACKING INTEGER,
-        EBAYID INTEGER,
+        EBAYID TEXT,
         QUANTITY INTEGER,
-        TOTALCOST INTEGER,
-        SERIALNUMBER INTEGER,
+        TOTALCOST FLOAT,
+        SERIALNUMBER TEXT,
         LOGGEDBY TEXT,
         NOTES TEXT
     )
