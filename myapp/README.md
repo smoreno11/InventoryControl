@@ -13,20 +13,34 @@ This repo is a portable starter you can open in VS Code.
 ### 1) Setup (installs deps)
 
 ```bash
-node scripts/setup.mjs
+cd myapp/backend
+pip3 install fastapi uvicorn python-dotenv pydantic
+
+cd myapp/frontend
+npm install
 ```
 
-### 2) Run dev (starts backend + frontend)
+### 2) Start backend
 
 ```bash
-node scripts/dev.mjs
+cd myapp/backend
+python3 -m uvicorn app.main:app --reload
 ```
+
+
 
 2.5) If it gives an error you might be using the wrong Python. Python instead of Python3
 try PYTHON=python3 node scripts/setup.mjs <--------------------
 
 - Backend: http://127.0.0.1:8000/api/health
 - Frontend: http://127.0.0.1:5173
+
+### 3) Start Frontend
+```bash
+cd myapp/frontend
+npm run dev
+```
+
 
 ## Notes
 
