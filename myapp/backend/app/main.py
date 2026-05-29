@@ -1,69 +1,14 @@
 import os
-import sqlite3
 from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict
 from app import db
-from fastapi.middleware.cors import CORSMiddleware
 from app.upload import router as upload_router
 
 load_dotenv()
 app = FastAPI(title="Inventory Control API")
-
-class FieldUpdate(BaseModel):
-    serial_number: str
-    field: str
-    value: str
-
-class WorkflowUpdate(BaseModel):
-    serial_number: str
-    TESTEDBY: str
-    PACKEDBY: str
-    SHIPPEDBY: str
-    RETURNEDBY: str
-
-@app.post("/api/update-field")
-def update_field(data: FieldUpdate):
-
-    import sqlite3
-
-    allowed_fields = ["TESTEDBY", "PACKEDBY", "SHIPPEDBY", "RETURNEDBY"]
-
-    if data.field not in allowed_fields:
-        return {"error": "Invalid field"}
-
-    conn = sqlite3.connect("inventory.db")
-    cur = conn.cursor()
-
-    # 1. update workflow field
-    cur.execute(f"""
-        UPDATE inventory
-        SET {data.field} = ?
-        WHERE SERIALNUMBER = ?
-    """, (data.value, data.serial_number))
-
-    # 2. inventory logic
-    if data.field == "PACKEDBY":
-        cur.execute("""
-            UPDATE inventory
-            SET INVENTORYCOUNT = COALESCE(INVENTORYCOUNT, 0) + 1
-            WHERE SERIALNUMBER = ?
-        """, (data.serial_number,))
-
-    elif data.field == "SHIPPEDBY":
-        cur.execute("""
-            UPDATE inventory
-            SET INVENTORYCOUNT = COALESCE(INVENTORYCOUNT, 0) - 1
-            WHERE SERIALNUMBER = ?
-        """, (data.serial_number,))
-
-    conn.commit()
-    conn.close()
-
-    return {"success": True}
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -167,6 +112,7 @@ class ReturnUpdate(BaseModel):
 def on_startup():
     db.create_table()
     db.create_returns_table()
+    db.create_workflow_fields_table()
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -306,6 +252,50 @@ def delete_return_route(return_id: int):
     affected = db.delete_return(return_id)
     if affected == 0:
         raise HTTPException(status_code=404, detail="Return not found.")
+    return {"ok": True}
+
+
+# Shipping / box-number routes
+
+# Returns item info + workflow fields for a given 4-digit box number.
+@app.get("/api/box-lookup")
+def box_lookup(box_number: str):
+    if not box_number.strip():
+        raise HTTPException(status_code=400, detail="box_number is required")
+    result = db.get_item_by_box_number(box_number.strip())
+    if not result:
+        raise HTTPException(status_code=404, detail="No item found with that box number.")
+    return result
+
+
+# Returns all items that have been packed (have a BOX_NUMBER assigned), newest first.
+@app.get("/api/packed-boxes")
+def packed_boxes():
+    return db.get_packed_boxes()
+
+
+# Workflow field routes
+
+class WorkflowFieldUpdate(BaseModel):
+    serial_number: str
+    field: str
+    value: str
+
+# Returns all saved workflow field values for a given serial number.
+@app.get("/api/workflow-fields")
+def get_workflow_fields(serial_number: str):
+    if not serial_number.strip():
+        raise HTTPException(status_code=400, detail="serial_number is required")
+    return db.get_workflow_fields(serial_number.strip())
+
+# Saves a single workflow field value for a serial number.
+@app.post("/api/update-field")
+def update_field(payload: WorkflowFieldUpdate):
+    if not payload.serial_number.strip():
+        raise HTTPException(status_code=400, detail="serial_number is required")
+    if not payload.field.strip():
+        raise HTTPException(status_code=400, detail="field is required")
+    db.set_workflow_field(payload.serial_number.strip(), payload.field.strip(), payload.value.strip())
     return {"ok": True}
 
 

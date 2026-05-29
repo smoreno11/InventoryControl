@@ -1,3 +1,4 @@
+import random
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -305,3 +306,114 @@ def lookup_inventory_by_ebay_order(ebay_order_id: str) -> dict | None:
         cur.execute(f"SELECT rowid as id, * FROM INVENTORY WHERE {where} LIMIT 1", params)
         row = cur.fetchone()
         return dict(row) if row else None
+
+
+# Workflow Fields
+
+# Creates the workflow_fields table if it doesn't exist. Stores one row per serial+field combination.
+def create_workflow_fields_table():
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS workflow_fields (
+                serial_number TEXT NOT NULL,
+                field         TEXT NOT NULL,
+                value         TEXT NOT NULL DEFAULT '',
+                updated_at    TEXT DEFAULT (datetime('now')),
+                PRIMARY KEY (serial_number, field)
+            )
+        """)
+        conn.commit()
+
+
+# Returns all saved workflow field values for a given serial number, including the timestamp of when each was set.
+def get_workflow_fields(serial_number: str) -> dict:
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT field, value, updated_at FROM workflow_fields WHERE serial_number = ?", (serial_number,))
+        return {row["field"]: {"value": row["value"], "timestamp": row["updated_at"]} for row in cur.fetchall()}
+
+
+# Inserts or updates a single workflow field value for a serial number.
+# If the field being saved is PACKEDBY and no BOX_NUMBER exists yet, auto-generates one.
+def set_workflow_field(serial_number: str, field: str, value: str):
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO workflow_fields (serial_number, field, value, updated_at)
+            VALUES (?, ?, ?, datetime('now'))
+            ON CONFLICT(serial_number, field) DO UPDATE SET
+                value = excluded.value,
+                updated_at = excluded.updated_at
+        """, (serial_number, field, value))
+        # Auto-assign a 4-digit box number the first time an item is packed.
+        if field == "PACKEDBY" and value:
+            cur.execute(
+                "SELECT 1 FROM workflow_fields WHERE serial_number=? AND field='BOX_NUMBER'",
+                (serial_number,),
+            )
+            if cur.fetchone() is None:
+                box_num = str(random.randint(1000, 9999))
+                cur.execute("""
+                    INSERT INTO workflow_fields (serial_number, field, value, updated_at)
+                    VALUES (?, 'BOX_NUMBER', ?, datetime('now'))
+                """, (serial_number, box_num))
+        conn.commit()
+
+
+# Returns the inventory item and all workflow fields for a given 4-digit box number, or None if not found.
+def get_item_by_box_number(box_number: str) -> dict | None:
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT serial_number FROM workflow_fields WHERE field='BOX_NUMBER' AND value=?",
+            (box_number,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        serial = row["serial_number"]
+        cur.execute("SELECT rowid as id, * FROM INVENTORY WHERE SERIALNUMBER=? LIMIT 1", (serial,))
+        item_row = cur.fetchone()
+        cur.execute(
+            "SELECT field, value, updated_at FROM workflow_fields WHERE serial_number=?",
+            (serial,),
+        )
+        fields = {r["field"]: {"value": r["value"], "timestamp": r["updated_at"]} for r in cur.fetchall()}
+        return {
+            "serial_number": serial,
+            "box_number": box_number,
+            "item": dict(item_row) if item_row else None,
+            "workflow_fields": fields,
+        }
+
+
+# Returns all items that have been assigned a box number, newest first, with outgoing tracking if set.
+def get_packed_boxes() -> list[dict]:
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT bn.serial_number,
+                   bn.value       AS box_number,
+                   bn.updated_at  AS packed_at,
+                   ot.value       AS outgoing_tracking
+            FROM workflow_fields bn
+            LEFT JOIN workflow_fields ot
+                   ON ot.serial_number = bn.serial_number AND ot.field = 'OUTGOING_TRACKING'
+            WHERE bn.field = 'BOX_NUMBER'
+            ORDER BY bn.updated_at DESC
+        """)
+        rows = cur.fetchall()
+        result = []
+        for row in rows:
+            serial = row["serial_number"]
+            cur.execute("SELECT rowid as id, * FROM INVENTORY WHERE SERIALNUMBER=? LIMIT 1", (serial,))
+            item_row = cur.fetchone()
+            result.append({
+                "serial_number": serial,
+                "box_number": row["box_number"],
+                "packed_at": row["packed_at"],
+                "outgoing_tracking": row["outgoing_tracking"] or "",
+                "item": dict(item_row) if item_row else None,
+            })
+        return result
