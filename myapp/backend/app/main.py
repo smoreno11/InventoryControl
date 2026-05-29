@@ -1,8 +1,9 @@
 import os
+from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from app import db
 
 load_dotenv()
@@ -51,9 +52,64 @@ class FullItem(BaseModel):
 
 # ── Startup ──────────────────────────────────────────────────────────────────
 
+class ReturnCreate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    ebay_order_id: str
+    item_name: Optional[str] = ""
+    quantity: Optional[int] = 0
+    total_cost: Optional[float] = 0.0
+    date_received: Optional[str] = ""
+    serial_number: Optional[str] = ""
+    logged_by: Optional[str] = ""
+    wms_functional: Optional[int] = 0
+    wms_case_good: Optional[int] = 0
+    cd_changer_functional: Optional[int] = 0
+    cd_changer_case_good: Optional[int] = 0
+    return_reason: Optional[str] = ""
+    inspection_notes: Optional[str] = ""
+    status: Optional[str] = "inspection"
+
+
+class ReturnUpdate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    status: Optional[str] = None
+    ebay_order_id: Optional[str] = None
+    item_name: Optional[str] = None
+    quantity: Optional[int] = None
+    total_cost: Optional[float] = None
+    date_received: Optional[str] = None
+    serial_number: Optional[str] = None
+    logged_by: Optional[str] = None
+    wms_functional: Optional[int] = None
+    wms_case_good: Optional[int] = None
+    cd_changer_functional: Optional[int] = None
+    cd_changer_case_good: Optional[int] = None
+    return_reason: Optional[str] = None
+    inspection_notes: Optional[str] = None
+    date_return_open: Optional[str] = None
+    return_open_by: Optional[str] = None
+    ebay_followup_date: Optional[str] = None
+    return_label_received: Optional[int] = None
+    date_label_received: Optional[str] = None
+    ebay_notes: Optional[str] = None
+    partial_refund_accepted: Optional[int] = None
+    partial_refund_amount: Optional[float] = None
+    michael_approval_date: Optional[str] = None
+    approval_notes: Optional[str] = None
+    rtn_packed_by: Optional[str] = None
+    date_contacted_seller: Optional[str] = None
+    date_package_returned: Optional[str] = None
+    return_tracking: Optional[str] = None
+    packing_notes: Optional[str] = None
+    amount_refund_received: Optional[float] = None
+    date_refund_received: Optional[str] = None
+    refund_notes: Optional[str] = None
+
+
 @app.on_event("startup")
 def on_startup():
     db.create_table()
+    db.create_returns_table()
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
@@ -132,6 +188,67 @@ def add_full_item(item: FullItem):
         item.itemtype.strip(), item.qtyreceived,
         item.serialnumber.strip(), item.loggedby.strip(), item.notes,
     )
+    return {"ok": True}
+
+
+# Returns routes
+
+@app.get("/api/inventory/lookup")
+def inventory_lookup(ebay_order_id: str):
+    if not ebay_order_id.strip():
+        raise HTTPException(status_code=400, detail="ebay_order_id is required")
+    row = db.lookup_inventory_by_ebay_order(ebay_order_id.strip())
+    if not row:
+        raise HTTPException(status_code=404, detail="No inventory found for that eBay order ID.")
+    return row
+
+
+@app.get("/api/returns/stats")
+def returns_stats():
+    return db.get_returns_stats()
+
+
+@app.get("/api/returns")
+def list_returns(status: Optional[str] = None):
+    return db.get_returns(status=status)
+
+
+@app.get("/api/returns/{return_id}")
+def get_one_return(return_id: int):
+    row = db.get_return(return_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Return not found.")
+    return row
+
+
+@app.post("/api/returns", status_code=201)
+def create_return_route(payload: ReturnCreate):
+    if not payload.ebay_order_id.strip():
+        raise HTTPException(status_code=400, detail="ebay_order_id is required")
+    data = payload.model_dump()
+    data["ebay_order_id"] = data["ebay_order_id"].strip()
+    new_id = db.create_return(**data)
+    return {"ok": True, "id": new_id, "item": db.get_return(new_id)}
+
+
+@app.patch("/api/returns/{return_id}")
+def patch_return(return_id: int, payload: ReturnUpdate):
+    fields = {k: v for k, v in payload.model_dump(exclude_none=True).items()}
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields to update.")
+    affected = db.update_return(return_id, **fields)
+    if affected == 0:
+        existing = db.get_return(return_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Return not found.")
+    return {"ok": True, "item": db.get_return(return_id)}
+
+
+@app.delete("/api/returns/{return_id}")
+def delete_return_route(return_id: int):
+    affected = db.delete_return(return_id)
+    if affected == 0:
+        raise HTTPException(status_code=404, detail="Return not found.")
     return {"ok": True}
 
 

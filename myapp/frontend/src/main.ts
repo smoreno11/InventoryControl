@@ -80,10 +80,15 @@ function buildShell() {
           <h1>Inventory Control</h1>
           <div class="tagline">A MorBright Product</div>
         </div>
+        <nav class="app-nav">
+          <button class="nav-btn active" data-page="inventory">Inventory</button>
+          <button class="nav-btn" data-page="returns">eBay Returns</button>
+        </nav>
         <div class="header-stats" id="header-stats"></div>
       </div>
     </header>
 
+    <div id="page-inventory">
     <main class="app-main">
 
       <!-- ① Add Pending Shipment -->
@@ -159,6 +164,7 @@ function buildShell() {
           <span class="month-label" id="month-label"></span>
           <button class="month-nav" id="month-next">&#8250;</button>
           <button class="month-all" id="month-all">All Time</button>
+          <button class="month-all" id="month-all">Saul Is Gay</button>
         </div>
         <div class="section-body">
           <div class="search-wrap">
@@ -170,6 +176,9 @@ function buildShell() {
       </section>
 
     </main>
+    </div>
+
+    <div id="page-returns" style="display:none"></div>
 
     <!-- Report Issue Modal -->
     <div class="modal-overlay hidden" id="report-overlay">
@@ -246,6 +255,20 @@ function wire() {
     if (e.target === e.currentTarget) closeReport();
   });
   q("#report-send").addEventListener("click", sendReport);
+
+  document.querySelectorAll<HTMLButtonElement>('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const page = btn.dataset.page!;
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('page-inventory')!.style.display = page === 'inventory' ? '' : 'none';
+      const rtnEl = document.getElementById('page-returns')!;
+      rtnEl.style.display = page === 'returns' ? '' : 'none';
+      if (page === 'returns') {
+        import('./returns').then(m => m.mountReturns(rtnEl));
+      }
+    });
+  });
 }
 
 // ── Data ───────────────────────────────────────────────────────────────────
@@ -491,7 +514,7 @@ function renderByType(list: Element, items: Item[]) {
   }).join("");
 }
 
-// ── Group toggle (global for inline onclick) ────────────────────────────────
+//Group toggle (global for inline onclick)
 
 (window as Record<string, unknown>)["__toggleGroup"] = (gid: string, headEl: HTMLElement) => {
   const body = document.getElementById(gid)!;
@@ -500,7 +523,7 @@ function renderByType(list: Element, items: Item[]) {
   arrow.classList.toggle("rotated", !hidden);
 };
 
-// ── Report modal ───────────────────────────────────────────────────────────
+// Report modal
 
 (window as Record<string, unknown>)["__openReport"] = (encoded: string) => {
   const item = JSON.parse(decodeURIComponent(encoded));
