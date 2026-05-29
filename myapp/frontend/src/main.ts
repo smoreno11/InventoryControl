@@ -31,7 +31,10 @@ function fmt$(n: number | null | undefined): string {
   return `$${Number(n).toFixed(2)}`;
 }
 
-function q<T extends Element>(sel: string, root: Element | Document = document): T {
+function q<T extends Element>(
+  sel: string,
+  root: Element | Document = document,
+): T {
   return root.querySelector<T>(sel)!;
 }
 
@@ -46,8 +49,20 @@ const _now = new Date();
 let filterMonth: number | null = _now.getMonth() + 1;
 let filterYear: number | null = _now.getFullYear();
 
-const MONTH_NAMES = ["January","February","March","April","May","June",
-                     "July","August","September","October","November","December"];
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 // ── Date helpers ────────────────────────────────────────────────────────────
 
@@ -159,6 +174,7 @@ function buildShell() {
           <span class="month-label" id="month-label"></span>
           <button class="month-nav" id="month-next">&#8250;</button>
           <button class="month-all" id="month-all">All Time</button>
+           <button class="month-all" id="month-all">Ryan Albright is great</button>
         </div>
         <div class="section-body">
           <div class="search-wrap">
@@ -196,6 +212,10 @@ function buildShell() {
   `;
 }
 
+import { createUploadUI } from "./upload";
+
+createUploadUI();
+
 function wire() {
   q("#toggle-add").addEventListener("click", () => {
     const body = q<HTMLDivElement>("#add-body");
@@ -214,23 +234,37 @@ function wire() {
   document.querySelectorAll<HTMLButtonElement>(".view-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       viewMode = btn.dataset.view as "date" | "type";
-      document.querySelectorAll(".view-btn").forEach((b) => b.classList.remove("active"));
+      document
+        .querySelectorAll(".view-btn")
+        .forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       renderComplete();
     });
   });
 
   q("#month-prev").addEventListener("click", () => {
-    if (filterMonth === null) { filterMonth = _now.getMonth() + 1; filterYear = _now.getFullYear(); }
-    else if (filterMonth === 1) { filterMonth = 12; filterYear = (filterYear ?? _now.getFullYear()) - 1; }
-    else { filterMonth -= 1; }
+    if (filterMonth === null) {
+      filterMonth = _now.getMonth() + 1;
+      filterYear = _now.getFullYear();
+    } else if (filterMonth === 1) {
+      filterMonth = 12;
+      filterYear = (filterYear ?? _now.getFullYear()) - 1;
+    } else {
+      filterMonth -= 1;
+    }
     renderComplete();
   });
 
   q("#month-next").addEventListener("click", () => {
-    if (filterMonth === null) { filterMonth = _now.getMonth() + 1; filterYear = _now.getFullYear(); }
-    else if (filterMonth === 12) { filterMonth = 1; filterYear = (filterYear ?? _now.getFullYear()) + 1; }
-    else { filterMonth += 1; }
+    if (filterMonth === null) {
+      filterMonth = _now.getMonth() + 1;
+      filterYear = _now.getFullYear();
+    } else if (filterMonth === 12) {
+      filterMonth = 1;
+      filterYear = (filterYear ?? _now.getFullYear()) + 1;
+    } else {
+      filterMonth += 1;
+    }
     renderComplete();
   });
 
@@ -316,12 +350,19 @@ function renderPending() {
 function pendingCardHTML(item: Item): string {
   const name = item.NAME?.trim() || "Unknown Item";
   const pills = [
-    item.DATE        && `<span class="meta-pill">Date: <strong>${esc(item.DATE)}</strong></span>`,
-    item.EBAYORDERID && `<span class="meta-pill">Order: <strong>${esc(item.EBAYORDERID)}</strong></span>`,
-    item.TRACKING    && `<span class="meta-pill">Tracking: ${esc(item.TRACKING)}</span>`,
-    item.QTYORDERED  && `<span class="meta-pill">Qty ordered: <strong>${item.QTYORDERED}</strong></span>`,
-    item.TOTALCOST   && `<span class="meta-pill">Cost: <strong>${fmt$(item.TOTALCOST)}</strong></span>`,
-  ].filter(Boolean).join("");
+    item.DATE &&
+      `<span class="meta-pill">Date: <strong>${esc(item.DATE)}</strong></span>`,
+    item.EBAYORDERID &&
+      `<span class="meta-pill">Order: <strong>${esc(item.EBAYORDERID)}</strong></span>`,
+    item.TRACKING &&
+      `<span class="meta-pill">Tracking: ${esc(item.TRACKING)}</span>`,
+    item.QTYORDERED &&
+      `<span class="meta-pill">Qty ordered: <strong>${item.QTYORDERED}</strong></span>`,
+    item.TOTALCOST &&
+      `<span class="meta-pill">Cost: <strong>${fmt$(item.TOTALCOST)}</strong></span>`,
+  ]
+    .filter(Boolean)
+    .join("");
 
   return `
     <div class="pending-card">
@@ -400,13 +441,27 @@ function renderComplete() {
 
   if (searchQuery) {
     items = items.filter((it) =>
-      [it.ITEMTYPE, it.SERIALNUMBER, it.LOGGEDBY, it.NAME, it.NOTES, it.EBAYORDERID, it.TRACKING, it.DATE]
-        .some((f) => String(f ?? "").toLowerCase().includes(searchQuery))
+      [
+        it.ITEMTYPE,
+        it.SERIALNUMBER,
+        it.LOGGEDBY,
+        it.NAME,
+        it.NOTES,
+        it.EBAYORDERID,
+        it.TRACKING,
+        it.DATE,
+      ].some((f) =>
+        String(f ?? "")
+          .toLowerCase()
+          .includes(searchQuery),
+      ),
     );
   }
 
   if (items.length === 0) {
-    const msg = searchQuery ? `No items match "${searchQuery}"` : "No logged inventory yet.";
+    const msg = searchQuery
+      ? `No items match "${searchQuery}"`
+      : "No logged inventory yet.";
     list.innerHTML = `<div class="empty-state"><p>${esc(msg)}</p></div>`;
     return;
   }
@@ -422,9 +477,15 @@ function itemRow(it: Item, showType: boolean): string {
   const typeCell = showType
     ? `<td><strong>${esc(it.ITEMTYPE?.trim() || "Uncategorized")}</strong></td>`
     : "";
-  const reportData = encodeURIComponent(JSON.stringify({
-    id: it.id, type: it.ITEMTYPE, sn: it.SERIALNUMBER, date: it.DATE, name: it.NAME,
-  }));
+  const reportData = encodeURIComponent(
+    JSON.stringify({
+      id: it.id,
+      type: it.ITEMTYPE,
+      sn: it.SERIALNUMBER,
+      date: it.DATE,
+      name: it.NAME,
+    }),
+  );
   return `
     <tr>
       ${typeCell}
@@ -436,8 +497,10 @@ function itemRow(it: Item, showType: boolean): string {
       <td class="td-muted" style="font-size:0.75rem">${esc(it.EBAYORDERID) || "—"}</td>
       <td class="td-notes" title="${esc(it.NAME)}">${esc(it.NAME) || '<span class="td-muted">—</span>'}</td>
       <td class="td-notes" title="${esc(it.NOTES)}">${esc(it.NOTES) || '<span class="td-muted">—</span>'}</td>
+      <td><button class="td-notes" onclick="__testReport('${reportData}')">Assesment</button></td>
       <td><button class="btn-report" onclick="__openReport('${reportData}')">Report Issue</button></td>
-    </tr>`;
+      
+      </tr>`;
 }
 
 function tableHead(showType: boolean): string {
@@ -446,7 +509,9 @@ function tableHead(showType: boolean): string {
 }
 
 function renderByDate(list: Element, items: Item[]) {
-  const sorted = [...items].sort((a, b) => parseDate(b.DATE) - parseDate(a.DATE));
+  const sorted = [...items].sort(
+    (a, b) => parseDate(b.DATE) - parseDate(a.DATE),
+  );
   list.innerHTML = `
     <div class="inv-group">
       <div class="inv-group-body" style="border:none">
@@ -467,14 +532,17 @@ function renderByType(list: Element, items: Item[]) {
   }
 
   const sortedKeys = [...groups.keys()].sort((a, b) =>
-    a.localeCompare(b, undefined, { sensitivity: "base" })
+    a.localeCompare(b, undefined, { sensitivity: "base" }),
   );
 
-  list.innerHTML = sortedKeys.map((key) => {
-    const group = groups.get(key)!.sort((a, b) => parseDate(b.DATE) - parseDate(a.DATE));
-    const totalQty = group.reduce((s, i) => s + (i.QTYRECEIVED || 0), 0);
-    const gid = `g-${key.replace(/\W+/g, "-")}`;
-    return `
+  list.innerHTML = sortedKeys
+    .map((key) => {
+      const group = groups
+        .get(key)!
+        .sort((a, b) => parseDate(b.DATE) - parseDate(a.DATE));
+      const totalQty = group.reduce((s, i) => s + (i.QTYRECEIVED || 0), 0);
+      const gid = `g-${key.replace(/\W+/g, "-")}`;
+      return `
       <div class="inv-group">
         <div class="inv-group-head" onclick="__toggleGroup('${gid}', this)">
           <span class="inv-group-name">${esc(key)}</span>
@@ -488,12 +556,16 @@ function renderByType(list: Element, items: Item[]) {
           </table>
         </div>
       </div>`;
-  }).join("");
+    })
+    .join("");
 }
 
 // ── Group toggle (global for inline onclick) ────────────────────────────────
 
-(window as Record<string, unknown>)["__toggleGroup"] = (gid: string, headEl: HTMLElement) => {
+(window as Record<string, unknown>)["__toggleGroup"] = (
+  gid: string,
+  headEl: HTMLElement,
+) => {
   const body = document.getElementById(gid)!;
   const arrow = headEl.querySelector<HTMLElement>(".toggle-arrow")!;
   const hidden = body.classList.toggle("hidden");
@@ -507,7 +579,7 @@ function renderByType(list: Element, items: Item[]) {
   q("#report-item-info").innerHTML = `
     <div class="report-item-type">${esc(item.type || "Uncategorized")}</div>
     <div class="report-item-meta">
-      ${item.sn   ? `<span>SN: <strong>${esc(item.sn)}</strong></span>` : ""}
+      ${item.sn ? `<span>SN: <strong>${esc(item.sn)}</strong></span>` : ""}
       ${item.date ? `<span>Date: <strong>${esc(item.date)}</strong></span>` : ""}
       ${item.name ? `<span class="report-item-name" title="${esc(item.name)}">${esc(item.name)}</span>` : ""}
     </div>`;
@@ -525,7 +597,8 @@ function sendReport() {
   const desc = q<HTMLTextAreaElement>("#report-desc").value.trim();
   const msgEl = q("#report-msg");
   if (!desc) {
-    msgEl.innerHTML = '<div class="msg msg-error">Please describe the issue.</div>';
+    msgEl.innerHTML =
+      '<div class="msg msg-error">Please describe the issue.</div>';
     return;
   }
   const btn = q<HTMLButtonElement>("#report-send");
@@ -533,7 +606,8 @@ function sendReport() {
   btn.textContent = "Sending...";
   // Cosmetic for now — wire to email/Slack/backend here later
   setTimeout(() => {
-    msgEl.innerHTML = '<div class="msg msg-success">Alert logged! Your boss will be notified.</div>';
+    msgEl.innerHTML =
+      '<div class="msg msg-success">Alert logged! Your boss will be notified.</div>';
     btn.disabled = false;
     btn.textContent = "Send Alert to Boss";
     setTimeout(closeReport, 1800);
@@ -570,10 +644,10 @@ async function onAddPending(e: Event) {
       body: JSON.stringify({
         date,
         ebayorderid: q<HTMLInputElement>("#p-ebayorderid").value.trim(),
-        tracking:    q<HTMLInputElement>("#p-tracking").value.trim(),
-        qtyordered:  parseInt(q<HTMLInputElement>("#p-qty").value) || 0,
-        totalcost:   parseFloat(q<HTMLInputElement>("#p-cost").value) || 0,
-        name:        q<HTMLInputElement>("#p-name").value.trim(),
+        tracking: q<HTMLInputElement>("#p-tracking").value.trim(),
+        qtyordered: parseInt(q<HTMLInputElement>("#p-qty").value) || 0,
+        totalcost: parseFloat(q<HTMLInputElement>("#p-cost").value) || 0,
+        name: q<HTMLInputElement>("#p-name").value.trim(),
       }),
     });
 
@@ -581,13 +655,17 @@ async function onAddPending(e: Event) {
       const err = await res.json();
       msgEl.innerHTML = `<div class="msg msg-error">${esc(err.detail ?? "Failed to add.")}</div>`;
     } else {
-      msgEl.innerHTML = '<div class="msg msg-success">Pending shipment added!</div>';
+      msgEl.innerHTML =
+        '<div class="msg msg-success">Pending shipment added!</div>';
       form.reset();
       await loadAll();
-      setTimeout(() => { msgEl.innerHTML = ""; }, 3500);
+      setTimeout(() => {
+        msgEl.innerHTML = "";
+      }, 3500);
     }
   } catch {
-    msgEl.innerHTML = '<div class="msg msg-error">Network error — is the backend running?</div>';
+    msgEl.innerHTML =
+      '<div class="msg msg-error">Network error — is the backend running?</div>';
   } finally {
     btn.disabled = false;
     btn.textContent = "+ Add Pending Shipment";
@@ -601,22 +679,48 @@ async function onComplete(e: Event, form: HTMLFormElement) {
   const msgEl = document.getElementById(`cmsg-${id}`)!;
 
   const get = (name: string) =>
-    (form.querySelector<HTMLInputElement>(`[name="${name}"]`)?.value ?? "").trim();
+    (
+      form.querySelector<HTMLInputElement>(`[name="${name}"]`)?.value ?? ""
+    ).trim();
 
-  const itemtype    = get("itemtype");
+  const itemtype = get("itemtype");
   const serialnumber = get("serialnumber");
-  const qtyreceived = parseInt(form.querySelector<HTMLInputElement>('[name="qtyreceived"]')?.value ?? "0");
-  const loggedby    = get("loggedby");
-  const notes       = get("notes");
+  const qtyreceived = parseInt(
+    form.querySelector<HTMLInputElement>('[name="qtyreceived"]')?.value ?? "0",
+  );
+  const loggedby = get("loggedby");
+  const notes = get("notes");
 
-  form.querySelectorAll("input").forEach((i) => i.classList.remove("field-error"));
+  form
+    .querySelectorAll("input")
+    .forEach((i) => i.classList.remove("field-error"));
   msgEl.innerHTML = "";
 
   const errors: string[] = [];
-  if (!itemtype)     { errors.push("Item Type is required.");    form.querySelector<HTMLInputElement>('[name="itemtype"]')?.classList.add("field-error"); }
-  if (!serialnumber) { errors.push("Serial Number is required."); form.querySelector<HTMLInputElement>('[name="serialnumber"]')?.classList.add("field-error"); }
-  if (!loggedby)     { errors.push("Logged By is required.");    form.querySelector<HTMLInputElement>('[name="loggedby"]')?.classList.add("field-error"); }
-  if (qtyreceived < 1) { errors.push("Qty Received must be at least 1."); form.querySelector<HTMLInputElement>('[name="qtyreceived"]')?.classList.add("field-error"); }
+  if (!itemtype) {
+    errors.push("Item Type is required.");
+    form
+      .querySelector<HTMLInputElement>('[name="itemtype"]')
+      ?.classList.add("field-error");
+  }
+  if (!serialnumber) {
+    errors.push("Serial Number is required.");
+    form
+      .querySelector<HTMLInputElement>('[name="serialnumber"]')
+      ?.classList.add("field-error");
+  }
+  if (!loggedby) {
+    errors.push("Logged By is required.");
+    form
+      .querySelector<HTMLInputElement>('[name="loggedby"]')
+      ?.classList.add("field-error");
+  }
+  if (qtyreceived < 1) {
+    errors.push("Qty Received must be at least 1.");
+    form
+      .querySelector<HTMLInputElement>('[name="qtyreceived"]')
+      ?.classList.add("field-error");
+  }
 
   if (errors.length) {
     msgEl.innerHTML = `<div class="msg msg-error">${errors.join(" ")}</div>`;
@@ -630,7 +734,13 @@ async function onComplete(e: Event, form: HTMLFormElement) {
     const res = await fetch(`/api/inventory/${id}/complete`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemtype, serialnumber, qtyreceived, loggedby, notes }),
+      body: JSON.stringify({
+        itemtype,
+        serialnumber,
+        qtyreceived,
+        loggedby,
+        notes,
+      }),
     });
 
     if (!res.ok) {
@@ -647,3 +757,131 @@ async function onComplete(e: Event, form: HTMLFormElement) {
     btn.textContent = "Mark as Complete";
   }
 }
+
+function getOptions() {
+  const names = ["John", "Saul", "Ryan", "Dan", "William", "Michael"];
+
+  return names.map((n) => `<option value="${n}">${n}</option>`).join("");
+}
+
+//Creating the log to attack name to the products based on who tested them
+(window as Record<string, unknown>)["__testReport"] = (encoded: string) => {
+  const item = JSON.parse(decodeURIComponent(encoded));
+
+  const popup = window.open(
+    "",
+    "assessmentPopup",
+    "width=700,height=650,left=200,top=100",
+  );
+
+  if (!popup) return;
+
+  popup.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Item Workflow</title>
+        <style>
+          body {
+            font-family: Arial;
+            padding: 20px;
+          }
+
+          .info {
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+          }
+
+          .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            gap: 10px;
+          }
+
+          .label {
+            width: 120px;
+            font-weight: bold;
+          }
+
+          select {
+            flex: 1;
+            padding: 6px;
+          }
+
+          button {
+            padding: 6px 10px;
+            background: #222;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-left: 10px;
+          }
+        </style>
+      </head>
+
+      <body>
+
+        <h2>Item Workflow</h2>
+
+        <div class="info">
+          <div><b>Name:</b> ${item.name || "N/A"}</div>
+          <div><b>Serial:</b> ${item.sn || "N/A"}</div>
+          <div><b>Date:</b> ${item.date || "N/A"}</div>
+        </div>
+
+        ${buildRow("TESTEDBY", item.sn)}
+        ${buildRow("PACKEDBY", item.sn)}
+        ${buildRow("SHIPPEDBY", item.sn)}
+        ${buildRow("RETURNEDBY", item.sn)}
+
+        <script>
+          function saveField(field, serial) {
+            const value = document.getElementById(field).value;
+
+            if (!value) {
+              alert("Please select a name first");
+              return;
+            }
+
+            fetch("/api/update-field", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                serial_number: serial,
+                field: field,
+                value: value
+              })
+            })
+            .then(() => alert(field + " updated"))
+            .catch(() => alert("Failed to update " + field));
+          }
+        </script>
+
+      </body>
+    </html>
+  `);
+
+  popup.document.close();
+
+  // helper injected into HTML string
+  function buildRow(field: string, serial: string) {
+    return `
+      <div class="row">
+        <div class="label">${field}</div>
+
+        <select id="${field}">
+          <option value="">-- Select Name --</option>
+          ${getOptions()}
+        </select>
+
+        <button onclick="saveField('${field}', '${serial}')">
+          Save
+        </button>
+      </div>
+    `;
+  }
+};

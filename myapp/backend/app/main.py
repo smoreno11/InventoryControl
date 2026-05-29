@@ -1,12 +1,68 @@
 import os
+import sqlite3
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from app import db
+from fastapi.middleware.cors import CORSMiddleware
+from app.upload import router as upload_router
 
 load_dotenv()
 app = FastAPI(title="Inventory Control API")
+
+class FieldUpdate(BaseModel):
+    serial_number: str
+    field: str
+    value: str
+
+class WorkflowUpdate(BaseModel):
+    serial_number: str
+    TESTEDBY: str
+    PACKEDBY: str
+    SHIPPEDBY: str
+    RETURNEDBY: str
+
+@app.post("/api/update-field")
+def update_field(data: FieldUpdate):
+
+    import sqlite3
+
+    allowed_fields = ["TESTEDBY", "PACKEDBY", "SHIPPEDBY", "RETURNEDBY"]
+
+    if data.field not in allowed_fields:
+        return {"error": "Invalid field"}
+
+    conn = sqlite3.connect("inventory.db")
+    cur = conn.cursor()
+
+    # 1. update workflow field
+    cur.execute(f"""
+        UPDATE inventory
+        SET {data.field} = ?
+        WHERE SERIALNUMBER = ?
+    """, (data.value, data.serial_number))
+
+    # 2. inventory logic
+    if data.field == "PACKEDBY":
+        cur.execute("""
+            UPDATE inventory
+            SET INVENTORYCOUNT = COALESCE(INVENTORYCOUNT, 0) + 1
+            WHERE SERIALNUMBER = ?
+        """, (data.serial_number,))
+
+    elif data.field == "SHIPPEDBY":
+        cur.execute("""
+            UPDATE inventory
+            SET INVENTORYCOUNT = COALESCE(INVENTORYCOUNT, 0) - 1
+            WHERE SERIALNUMBER = ?
+        """, (data.serial_number,))
+
+    conn.commit()
+    conn.close()
+
+    return {"success": True}
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,6 +71,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(upload_router)
 
 # ── Models ───────────────────────────────────────────────────────────────────
 
