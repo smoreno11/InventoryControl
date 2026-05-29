@@ -95,10 +95,16 @@ function buildShell() {
           <h1>Inventory Control</h1>
           <div class="tagline">A MorBright Product</div>
         </div>
+        <nav class="app-nav">
+          <button class="nav-btn active" data-page="inventory">Inventory</button>
+          <button class="nav-btn" data-page="returns">eBay Returns</button>
+          <button class="nav-btn" data-page="shipping">Shipping</button>
+        </nav>
         <div class="header-stats" id="header-stats"></div>
       </div>
     </header>
 
+    <div id="page-inventory">
     <main class="app-main">
 
       <!-- ① Add Pending Shipment -->
@@ -174,7 +180,6 @@ function buildShell() {
           <span class="month-label" id="month-label"></span>
           <button class="month-nav" id="month-next">&#8250;</button>
           <button class="month-all" id="month-all">All Time</button>
-           <button class="month-all" id="month-all">Ryan Albright is great</button>
         </div>
         <div class="section-body">
           <div class="search-wrap">
@@ -186,6 +191,29 @@ function buildShell() {
       </section>
 
     </main>
+    </div>
+
+    <div id="page-returns" style="display:none"></div>
+    <div id="page-shipping" style="display:none"></div>
+
+    <!-- Assessment Modal -->
+    <div class="modal-overlay hidden" id="assessment-overlay">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Item Workflow</h3>
+          <button class="modal-close" id="assessment-close">&#10005;</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-item-info" id="assessment-item-info"></div>
+          <div id="assessment-box-display" style="margin-top:14px;"></div>
+          <div id="assessment-rows" style="margin-top:12px;display:flex;flex-direction:column;gap:10px;"></div>
+          <div id="assessment-msg"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="assessment-cancel">Close</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Report Issue Modal -->
     <div class="modal-overlay hidden" id="report-overlay">
@@ -274,12 +302,37 @@ function wire() {
     renderComplete();
   });
 
+  q("#assessment-close").addEventListener("click", closeAssessment);
+  q("#assessment-cancel").addEventListener("click", closeAssessment);
+  q("#assessment-overlay").addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeAssessment();
+  });
+
   q("#report-close").addEventListener("click", closeReport);
   q("#report-cancel").addEventListener("click", closeReport);
   q("#report-overlay").addEventListener("click", (e) => {
     if (e.target === e.currentTarget) closeReport();
   });
   q("#report-send").addEventListener("click", sendReport);
+
+  document.querySelectorAll<HTMLButtonElement>('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const page = btn.dataset.page!;
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('page-inventory')!.style.display = page === 'inventory' ? '' : 'none';
+      const rtnEl = document.getElementById('page-returns')!;
+      rtnEl.style.display = page === 'returns' ? '' : 'none';
+      if (page === 'returns') {
+        import('./returns').then(m => m.mountReturns(rtnEl));
+      }
+      const shipEl = document.getElementById('page-shipping')!;
+      shipEl.style.display = page === 'shipping' ? '' : 'none';
+      if (page === 'shipping') {
+        import('./shipping').then(m => m.mountShipping(shipEl));
+      }
+    });
+  });
 }
 
 // ── Data ───────────────────────────────────────────────────────────────────
@@ -560,7 +613,7 @@ function renderByType(list: Element, items: Item[]) {
     .join("");
 }
 
-// ── Group toggle (global for inline onclick) ────────────────────────────────
+//Group toggle (global for inline onclick)
 
 (window as Record<string, unknown>)["__toggleGroup"] = (
   gid: string,
@@ -572,7 +625,7 @@ function renderByType(list: Element, items: Item[]) {
   arrow.classList.toggle("rotated", !hidden);
 };
 
-// ── Report modal ───────────────────────────────────────────────────────────
+// Report modal
 
 (window as Record<string, unknown>)["__openReport"] = (encoded: string) => {
   const item = JSON.parse(decodeURIComponent(encoded));
@@ -764,124 +817,121 @@ function getOptions() {
   return names.map((n) => `<option value="${n}">${n}</option>`).join("");
 }
 
+// Updates (or clears) the box number banner inside the assessment modal.
+function refreshBoxDisplay(saved: Record<string, { value: string; timestamp: string }>) {
+  const el = document.getElementById("assessment-box-display");
+  if (!el) return;
+  const boxNum = saved["BOX_NUMBER"]?.value ?? "";
+  if (!boxNum) {
+    el.innerHTML = "";
+    return;
+  }
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;background:var(--accent);color:#fff;border-radius:8px;padding:10px 16px;">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;opacity:.85;line-height:1;">Box #</div>
+      <div style="font-size:1.8rem;font-weight:800;letter-spacing:5px;line-height:1;">${esc(boxNum)}</div>
+      <div style="font-size:0.72rem;opacity:.85;margin-left:4px;">Write this on the box</div>
+    </div>
+  `;
+}
+
 //Creating the log to attack name to the products based on who tested them
-(window as Record<string, unknown>)["__testReport"] = (encoded: string) => {
+function closeAssessment() {
+  q("#assessment-overlay").classList.add("hidden");
+}
+
+// Formats a DB timestamp string (e.g. "2026-05-18 10:23:45") into a readable label like "May 18, 2026 10:23 AM".
+function fmtTimestamp(ts: string): string {
+  if (!ts) return "";
+  const d = new Date(ts.replace(" ", "T") + "Z");
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+}
+
+// Builds one workflow row (label + name dropdown + Save button + timestamp). savedTimestamp is shown in muted text if present.
+function buildAssessmentRow(field: string, serial: string, savedValue: string = "", savedTimestamp: string = ""): string {
+  const names = ["John", "Saul", "Ryan", "Dan", "William", "Michael"];
+  const options = names.map(n =>
+    `<option value="${n}" ${n === savedValue ? "selected" : ""}>${n}</option>`
+  ).join("");
+  const tsLabel = savedTimestamp
+    ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Set ${fmtTimestamp(savedTimestamp)}</div>`
+    : "";
+  return `
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="asmt-label-${field}" style="width:120px;">
+        <div style="font-weight:600;font-size:0.85rem">${esc(field)}</div>
+        ${tsLabel}
+      </div>
+      <select id="asmt-${field}" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem">
+        <option value="">-- Select Name --</option>
+        ${options}
+      </select>
+      <button class="btn btn-primary btn-sm" id="asmt-save-${field}" data-field="${field}" data-serial="${esc(serial)}">Save</button>
+      <span id="asmt-msg-${field}" style="font-size:0.75rem;color:var(--complete)"></span>
+    </div>
+  `;
+}
+
+(window as Record<string, unknown>)["__testReport"] = async (encoded: string) => {
   const item = JSON.parse(decodeURIComponent(encoded));
 
-  const popup = window.open(
-    "",
-    "assessmentPopup",
-    "width=700,height=650,left=200,top=100",
-  );
+  q("#assessment-item-info").innerHTML = `
+    <div class="report-item-type">${esc(item.type || "Uncategorized")}</div>
+    <div class="report-item-meta">
+      <span>${esc(item.date || "")}</span>
+      ${item.sn ? `<span>SN: ${esc(item.sn)}</span>` : ""}
+      ${item.name ? `<span class="report-item-name" title="${esc(item.name)}">${esc(item.name)}</span>` : ""}
+    </div>
+  `;
 
-  if (!popup) return;
+  // Load any previously saved values (and their timestamps) for this serial number.
+  let saved: Record<string, { value: string; timestamp: string }> = {};
+  try {
+    const res = await fetch(`/api/workflow-fields?serial_number=${encodeURIComponent(item.sn || "")}`);
+    if (res.ok) saved = await res.json();
+  } catch { /* silently ignore — modal still opens with empty dropdowns */ }
 
-  popup.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Item Workflow</title>
-        <style>
-          body {
-            font-family: Arial;
-            padding: 20px;
+  const fields = ["TESTEDBY", "PACKEDBY", "SHIPPEDBY", "RETURNEDBY"];
+  q("#assessment-rows").innerHTML = fields.map(f =>
+    buildAssessmentRow(f, item.sn, saved[f]?.value ?? "", saved[f]?.timestamp ?? "")
+  ).join("");
+  q("#assessment-msg").innerHTML = "";
+  refreshBoxDisplay(saved);
+
+  fields.forEach(field => {
+    q(`#asmt-save-${field}`).addEventListener("click", async () => {
+      const select = q<HTMLSelectElement>(`#asmt-${field}`);
+      const msgEl = q(`#asmt-msg-${field}`);
+      if (!select.value) { msgEl.textContent = "Select a name first"; return; }
+      try {
+        await fetch("/api/update-field", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ serial_number: item.sn, field, value: select.value }),
+        });
+        // Refresh timestamps and box number display without closing the modal.
+        const res2 = await fetch(`/api/workflow-fields?serial_number=${encodeURIComponent(item.sn || "")}`);
+        if (res2.ok) {
+          const refreshed: Record<string, { value: string; timestamp: string }> = await res2.json();
+          const ts = refreshed[field]?.timestamp ?? "";
+          const labelCell = document.getElementById(`asmt-label-${field}`);
+          if (labelCell) {
+            labelCell.innerHTML = `<div style="font-weight:600;font-size:0.85rem">${esc(field)}</div>` +
+              (ts ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Set ${fmtTimestamp(ts)}</div>` : "");
           }
+          refreshBoxDisplay(refreshed);
+        }
+        msgEl.textContent = "Saved!";
+        setTimeout(() => { msgEl.textContent = ""; }, 1800);
+      } catch {
+        msgEl.textContent = "Failed";
+      }
+    });
+  });
 
-          .info {
-            border: 1px solid #ddd;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-          }
-
-          .row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            gap: 10px;
-          }
-
-          .label {
-            width: 120px;
-            font-weight: bold;
-          }
-
-          select {
-            flex: 1;
-            padding: 6px;
-          }
-
-          button {
-            padding: 6px 10px;
-            background: #222;
-            color: white;
-            border: none;
-            cursor: pointer;
-            margin-left: 10px;
-          }
-        </style>
-      </head>
-
-      <body>
-
-        <h2>Item Workflow</h2>
-
-        <div class="info">
-          <div><b>Name:</b> ${item.name || "N/A"}</div>
-          <div><b>Serial:</b> ${item.sn || "N/A"}</div>
-          <div><b>Date:</b> ${item.date || "N/A"}</div>
-        </div>
-
-        ${buildRow("TESTEDBY", item.sn)}
-        ${buildRow("PACKEDBY", item.sn)}
-        ${buildRow("SHIPPEDBY", item.sn)}
-        ${buildRow("RETURNEDBY", item.sn)}
-
-        <script>
-          function saveField(field, serial) {
-            const value = document.getElementById(field).value;
-
-            if (!value) {
-              alert("Please select a name first");
-              return;
-            }
-
-            fetch("/api/update-field", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                serial_number: serial,
-                field: field,
-                value: value
-              })
-            })
-            .then(() => alert(field + " updated"))
-            .catch(() => alert("Failed to update " + field));
-          }
-        </script>
-
-      </body>
-    </html>
-  `);
-
-  popup.document.close();
-
-  // helper injected into HTML string
-  function buildRow(field: string, serial: string) {
-    return `
-      <div class="row">
-        <div class="label">${field}</div>
-
-        <select id="${field}">
-          <option value="">-- Select Name --</option>
-          ${getOptions()}
-        </select>
-
-        <button onclick="saveField('${field}', '${serial}')">
-          Save
-        </button>
-      </div>
-    `;
-  }
+  q("#assessment-overlay").classList.remove("hidden");
 };
