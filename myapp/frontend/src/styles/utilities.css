@@ -1,0 +1,37 @@
+/* ── Utilities ───────────────────────────────────────────
+   Loaded last so these win over component rules. */
+
+/*
+ * Generic hide.
+ *
+ * The stylesheet previously only had scoped variants
+ * (.modal-overlay.hidden, .inv-group-body.hidden, .complete-form-wrap.hidden),
+ * so anything else using the class stayed visible. Page containers, the return
+ * history panel, and conditional form fields all rely on this rule.
+ *
+ * !important because it has to beat component rules that set `display`
+ * at equal specificity regardless of source order.
+ */
+.hidden {
+  display: none !important;
+}
+
+/* Small-text table cell, used by both the inventory and shipping tables. */
+.td-small {
+  font-size: 0.75rem;
+}
+
+/* Table wrapper that should not draw its own border. */
+.inv-group-body-flush {
+  border: none;
+}
+
+/* Standard gap above a form's submit button. */
+.form-submit-gap {
+  margin-top: 8px;
+}
+
+/* Standard gap above a stacked form field. */
+.form-field-gap {
+  margin-top: 12px;
+}

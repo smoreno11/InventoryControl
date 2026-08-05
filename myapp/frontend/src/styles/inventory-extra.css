@@ -1,0 +1,19 @@
+/* ── Month bar additions ─────────────────────────────────
+   The upload control lives here, alongside the month filters. */
+
+.month-bar-spacer {
+  flex: 1;
+}
+
+.upload-msg {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.upload-msg-ok {
+  color: var(--complete);
+}
+
+.upload-msg-error {
+  color: var(--accent);
+}

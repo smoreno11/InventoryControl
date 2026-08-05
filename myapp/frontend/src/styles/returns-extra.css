@@ -1,0 +1,83 @@
+/* ── Returns page: header, history, wizard, detail modal ──
+   Extracted from inline style attributes in the old returns.ts. */
+
+.returns-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.returns-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.returns-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ── Return history ──────────────────────────────────── */
+
+.returns-history {
+  margin-top: 16px;
+}
+
+.history-toggle {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  user-select: none;
+}
+
+.history-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.history-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+/* ── Wizard steps ────────────────────────────────────── */
+
+.field-with-action {
+  display: flex;
+  gap: 8px;
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.approve-btn {
+  margin-top: 10px;
+}
+
+/* ── Detail modal ────────────────────────────────────── */
+
+.detail-subhead {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.detail-item-name {
+  margin-left: 8px;
+}
+
+.footer-spacer {
+  flex: 1;
+}

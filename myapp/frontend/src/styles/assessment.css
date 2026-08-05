@@ -1,0 +1,80 @@
+/* ── Assessment modal ────────────────────────────────────
+   Extracted from inline style attributes in the old main.ts. */
+
+.assessment-box-slot {
+  margin-top: 14px;
+}
+
+.assessment-rows {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.assessment-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.assessment-row-label {
+  width: 120px;
+}
+
+.assessment-row-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.assessment-row-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.assessment-select {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.assessment-row-msg {
+  font-size: 0.75rem;
+  color: var(--complete);
+}
+
+/* ── Box number banner ─────────────────────────────────── */
+
+.box-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 16px;
+}
+
+.box-banner-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.85;
+  line-height: 1;
+}
+
+.box-banner-number {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: 5px;
+  line-height: 1;
+}
+
+.box-banner-hint {
+  font-size: 0.72rem;
+  opacity: 0.85;
+  margin-left: 4px;
+}

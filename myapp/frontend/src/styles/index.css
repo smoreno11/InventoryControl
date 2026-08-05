@@ -1,0 +1,23 @@
+/* Stylesheet entry point.
+ *
+ * The first eight imports are the original style.css split at its own section
+ * comments, in the original order — CSS is order-sensitive, so this sequence
+ * must not be rearranged. The rest are new: styles extracted out of inline
+ * `style="..."` attributes, plus the utility layer, which loads last.
+ */
+
+@import "./tokens.css";
+@import "./header.css";
+@import "./layout.css";
+@import "./controls.css";
+@import "./inventory.css";
+@import "./modal.css";
+@import "./nav.css";
+@import "./returns.css";
+
+@import "./inventory-extra.css";
+@import "./assessment.css";
+@import "./returns-extra.css";
+@import "./shipping.css";
+
+@import "./utilities.css";
